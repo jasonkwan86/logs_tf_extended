@@ -1,25 +1,19 @@
 const isFirefox = typeof browser !== "undefined";
 const currentBrowser = isFirefox ? browser : chrome;
 
-const sendMessageAndWait = async (type, steamID) => {
-  const data = await currentBrowser.runtime.sendMessage({ type, steamID });
-  return data;
-};
+const timer = (ms) => new Promise((res) => setTimeout(res, ms));
 
-const getShowETF2L = async () => {
-  const showETF2L = await currentBrowser.storage.local.get("showETF2L");
-  return showETF2L.showETF2L;
-};
+const getRGLProfile = async (steamID) => await sendMessageAndWait("rgl_profile", steamID);
+const getETF2LProfile = async (steamID) => await sendMessageAndWait("etf2l_profile", steamID);
+const getRGLPastTeams = async (steamID) => await sendMessageAndWait("rgl_past_teams", steamID);
 
-const getShowRGL = async () => {
-  const showRGL = await currentBrowser.storage.local.get("showRGL");
-  return showRGL.showRGL;
-};
+const sendMessageAndWait = async (type, steamID) =>
+  await currentBrowser.runtime.sendMessage({ type, steamID });
 
-const getHighestDivisionPlayed = async () => {
-  const getHighestDivisionPlayed = await currentBrowser.storage.local.get("getHighestDivisionPlayed");
-  return getHighestDivisionPlayed.getHighestDivisionPlayed;
-};
+const getShowETF2LFlag = async () => (await currentBrowser.storage.local.get("showETF2L")).showETF2L;
+const getShowRGLFlag = async () => (await currentBrowser.storage.local.get("showRGL")).showRGL;
+const getHighestDivisionPlayedFlag = async () =>
+  (await currentBrowser.storage.local.get("getHighestDivisionPlayed")).getHighestDivisionPlayed;
 
 const RGLDivisions = Object.freeze({
   None: 0,
@@ -79,9 +73,9 @@ const RGLDivisionSpecs = Object.freeze({
   },
 });
 
-const timer = (ms) => new Promise((res) => setTimeout(res, ms));
+const getHighestNumericalDivisionPlayed = (pastTeams, gameMode) => {
+  if (pastTeams === undefined || pastTeams === null || pastTeams.length == 0) return RGLDivisions.None;
 
-function GetHighestDivisionPlayed(pastTeams, gameMode) {
   let greatestNumerivalDivisionPlayed = RGLDivisions.None;
   for (let i = 0; i < pastTeams.length; i++) {
     if (pastTeams[i].formatName != gameMode) continue;
@@ -94,12 +88,12 @@ function GetHighestDivisionPlayed(pastTeams, gameMode) {
   return greatestNumerivalDivisionPlayed;
 }
 
-function GetLatestDivisionPlayed(pastTeams, gameMode) {
-  if (pastTeams.length === 0) return RGLDivisions.None;
+const getLatestDivisionPlayed = (pastTeams, gameMode) => {
+  if (pastTeams === undefined || pastTeams === null || pastTeams.length == 0) return RGLDivisions.None;
 
   for (let i = 0; i < pastTeams.length; i++) {
     if (pastTeams[i].formatName != gameMode) continue;
-    if (RGLDivisions[pastTeams[i].divisionName] === undefined) continue;  // To account for special division names like "Spec 2-day" from cups
+    if (RGLDivisions[pastTeams[i].divisionName] === undefined) continue; // To account for special division names like "Spec 2-day" from cups
     return RGLDivisions[pastTeams[i].divisionName];
   }
   return RGLDivisions.None;
@@ -109,11 +103,11 @@ function GetLatestDivisionPlayed(pastTeams, gameMode) {
 // getHighestPlayed
 // true = get the user's highest division played
 // false = latest division played
-async function GetHighestGamemodeTeam(gameMode, steamID) {
-  const pastTeams = await sendMessageAndWait("rgl_past_teams", steamID);
+const getHighestGamemodeTeam = async (gameMode, steamID) => {
+  const pastTeams = await getRGLPastTeams(steamID);
 
-  const highestNumericalDivisionPlayed = GetHighestDivisionPlayed(pastTeams, gameMode);
-  const latestNumericalDivisionPlayed = GetLatestDivisionPlayed(pastTeams, gameMode);
+  const highestNumericalDivisionPlayed = getHighestNumericalDivisionPlayed(pastTeams, gameMode);
+  const latestNumericalDivisionPlayed = getLatestDivisionPlayed(pastTeams, gameMode);
   const highestDivisionString = RGLDivisionsInverse[highestNumericalDivisionPlayed];
   const latestDivisionString = RGLDivisionsInverse[latestNumericalDivisionPlayed];
   return {
@@ -122,10 +116,10 @@ async function GetHighestGamemodeTeam(gameMode, steamID) {
   };
 }
 
-async function UpdateETF2L() {
+const updateETF2LOnPage = async () => {
   for (let i = 0; i < playerRows.length; i++) {
     const steamID = playerRows[i].id.split("_")[1];
-    const resETF2L = await sendMessageAndWait("etf2l_profile", steamID);
+    const resETF2L = await getETF2LProfile(steamID);
     if (!resETF2L) return;
 
     const leagueElement = playerRows[i].firstChild;
@@ -150,7 +144,7 @@ async function UpdateETF2L() {
   }
 }
 
-async function UpdateETF2LName(steamID, playerInfo, leagueElement) {
+const updateETF2LNameOnPage = async (steamID, playerInfo, leagueElement) => {
   // Get rid of 'Loading...' message
   leagueElement.innerHTML = "";
 
@@ -165,7 +159,7 @@ async function UpdateETF2LName(steamID, playerInfo, leagueElement) {
   leagueElement.appendChild(etf2lLink);
 }
 
-async function UpdateRGLName(steamID, playerInfo, leagueElement) {
+const updateRGLName = async (steamID, playerInfo, leagueElement) => {
   if (!playerInfo.rgl.name) return;
 
   const rglLink = document.createElement("a");
@@ -190,13 +184,13 @@ async function UpdateRGLName(steamID, playerInfo, leagueElement) {
   rglLink.appendChild(banWarningSpan);
 }
 
-async function UpdateRGLDivision(playerInfo, leagueElement) {
+const updateRGLDivisionOnPage = async (playerInfo, leagueElement) => {
   if (!playerInfo.rgl.name) return;
-  const getHighestDivison = await getHighestDivisionPlayed();
+  const getHighestDivison = await getHighestDivisionPlayedFlag();
   const division = getHighestDivison ? playerInfo.rgl.division : playerInfo.rgl.latestDivision;
 
   if (!RGLDivisionSpecs[division]) {
-    console.log('Error occurred for ' + playerInfo.rgl.name);
+    console.log("Error occurred for " + playerInfo.rgl.name);
     console.log(`The division is not valid. Division: ${division}`);
     return;
   }
@@ -215,13 +209,11 @@ async function UpdateRGLDivision(playerInfo, leagueElement) {
   leagueElement.appendChild(rglDivisionElement);
 }
 
-async function FetchPlayerInfo(steamID) {
-  const resRGL = await sendMessageAndWait("rgl_profile", steamID);
-  const resETF2LName = await sendMessageAndWait("etf2l_profile", steamID);
-  const RGL_profile_data = resRGL;
-  const etf2l_name = resETF2LName;
+const fetchPlayerInfo = async (steamID) => {
+  const RGL_profile_data = await getRGLProfile(steamID);
+  const ETF2LProfile = await getETF2LProfile(steamID);
 
-  const { highestDivisionString, latestDivisionString } = await GetHighestGamemodeTeam("Sixes", steamID);
+  const { highestDivisionString, latestDivisionString } = await getHighestGamemodeTeam("Sixes", steamID);
   const localPlayerInfo = window.localStorage.getItem(steamID) ?? null;
 
   const localPlayerInfoJson = JSON.parse(localPlayerInfo);
@@ -234,18 +226,21 @@ async function FetchPlayerInfo(steamID) {
         : localPlayerInfoJson
         ? localPlayerInfoJson.rgl.isBanned
         : false,
-      division: highestDivisionString ? highestDivisionString : localPlayerInfoJson ? localPlayerInfoJson.rgl.division : "None",
+      division: highestDivisionString
+        ? highestDivisionString
+        : localPlayerInfoJson
+        ? localPlayerInfoJson.rgl.division
+        : "None",
       latestDivision: latestDivisionString,
     },
     etf2l: {
-      name: etf2l_name ? etf2l_name.player.name : localPlayerInfoJson ? localPlayerInfoJson.etf2l.name : null,
+      name: ETF2LProfile ? ETF2LProfile.player.name : localPlayerInfoJson ? localPlayerInfoJson.etf2l.name : null,
     },
   };
-
   return playerInfoToInsert;
 }
 
-async function UpdatePlayerRows() {
+const updatePlayerRows = async () => {
   const listOfSteamIDsInStorageThatMightNeedUpdating = [];
   const arrayOfPlayerRows = [...playerRows];
   const listOfSteamIDs = arrayOfPlayerRows.map((playerRow) => playerRow.id.split("_")[1]);
@@ -260,35 +255,26 @@ async function UpdatePlayerRows() {
       playerInfo = JSON.parse(playerInfoStorage);
       listOfSteamIDsInStorageThatMightNeedUpdating.push(steamID);
     } else {
-      const playerInfoToInsert = await FetchPlayerInfo(steamID);
+      const playerInfoToInsert = await fetchPlayerInfo(steamID);
 
       window.localStorage.setItem(steamID, JSON.stringify(playerInfoToInsert));
       playerInfo = playerInfoToInsert;
     }
 
     // true/false
-    const showETF2L = await getShowETF2L();
-    const showRGL = await getShowRGL();
+    const showETF2L = await getShowETF2LFlag();
+    const showRGL = await getShowRGLFlag();
 
-    showETF2L && UpdateETF2LName(steamID, playerInfo, leagueElement);
-    showRGL && UpdateRGLName(steamID, playerInfo, leagueElement);
-    showRGL && UpdateRGLDivision(playerInfo, leagueElement);
-  }
-
-  // Update all of them in local storage
+    showETF2L && updateETF2LNameOnPage(steamID, playerInfo, leagueElement);
+    showRGL && updateRGLName(steamID, playerInfo, leagueElement);
+    showRGL && updateRGLDivisionOnPage(playerInfo, leagueElement);
+  };
+  // Profiles have local versions that might need updating
   for (let i = 0; i < listOfSteamIDsInStorageThatMightNeedUpdating.length; i++) {
     const steamID = listOfSteamIDsInStorageThatMightNeedUpdating[i];
-    const playerInfoToInsert = await FetchPlayerInfo(steamID);
-
-    const localPlayerData = window.localStorage.getItem(steamID);
-    const fetchedPlayerData = JSON.stringify(playerInfoToInsert);
-    if (localPlayerData != null && fetchedPlayerData != localPlayerData) {
-      window.location.reload(true);
-    }
-
+    const playerInfoToInsert = await fetchPlayerInfo(steamID);
     window.localStorage.setItem(steamID, JSON.stringify(playerInfoToInsert));
-    playerInfo = playerInfoToInsert;
-  }
+  };
 }
 
 const tableBody = document.getElementById("players");
@@ -313,4 +299,4 @@ for (let i = 0; i < playerRows.length; i++) {
 const mainElement = document.getElementsByClassName("container main")[0];
 mainElement.style = "width: 1400px !important;";
 
-UpdatePlayerRows();
+updatePlayerRows();
