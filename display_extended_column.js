@@ -7,8 +7,7 @@ const getRGLProfile = async (steamID) => await sendMessageAndWait("rgl_profile",
 const getETF2LProfile = async (steamID) => await sendMessageAndWait("etf2l_profile", steamID);
 const getRGLPastTeams = async (steamID) => await sendMessageAndWait("rgl_past_teams", steamID);
 
-const sendMessageAndWait = async (type, steamID) =>
-  await currentBrowser.runtime.sendMessage({ type, steamID });
+const sendMessageAndWait = async (type, steamID) => await currentBrowser.runtime.sendMessage({ type, steamID });
 
 const getShowETF2LFlag = async () => (await currentBrowser.storage.local.get("showETF2L")).showETF2L;
 const getShowRGLFlag = async () => (await currentBrowser.storage.local.get("showRGL")).showRGL;
@@ -73,31 +72,48 @@ const RGLDivisionSpecs = Object.freeze({
   },
 });
 
+const isKnownDivision = (division) => typeof division === "string" && RGLDivisionSpecs[division] !== undefined;
+
+const getStableDivision = (freshDivision, cachedDivision) => {
+  const hasFreshDivision = isKnownDivision(freshDivision);
+  const hasCachedDivision = isKnownDivision(cachedDivision);
+
+  if (hasFreshDivision && freshDivision !== "None") return freshDivision;
+  if (hasCachedDivision && cachedDivision !== "None") return cachedDivision;
+  if (hasFreshDivision) return freshDivision;
+  if (hasCachedDivision) return cachedDivision;
+
+  return "None";
+};
+
 const getHighestNumericalDivisionPlayed = (pastTeams, gameMode) => {
   if (pastTeams === undefined || pastTeams === null || pastTeams.length == 0) return RGLDivisions.None;
 
-  let greatestNumerivalDivisionPlayed = RGLDivisions.None;
+  let greatestNumericalDivisionPlayed = RGLDivisions.None;
   for (let i = 0; i < pastTeams.length; i++) {
     if (pastTeams[i].formatName != gameMode) continue;
 
-    const numericalValue = RGLDivisions[pastTeams[i].divisionName];
-    if (greatestNumerivalDivisionPlayed < numericalValue) {
-      greatestNumerivalDivisionPlayed = numericalValue;
+    const divisionName = pastTeams[i].divisionName;
+    if (!Object.hasOwn(RGLDivisions, divisionName)) continue; // To account for special division names like "Spec 2-day" from cups
+    const numericalValue = RGLDivisions[divisionName];
+    if (greatestNumericalDivisionPlayed < numericalValue) {
+      greatestNumericalDivisionPlayed = numericalValue;
     }
   }
-  return greatestNumerivalDivisionPlayed;
-}
+  return greatestNumericalDivisionPlayed;
+};
 
 const getLatestDivisionPlayed = (pastTeams, gameMode) => {
   if (pastTeams === undefined || pastTeams === null || pastTeams.length == 0) return RGLDivisions.None;
 
   for (let i = 0; i < pastTeams.length; i++) {
     if (pastTeams[i].formatName != gameMode) continue;
-    if (RGLDivisions[pastTeams[i].divisionName] === undefined) continue; // To account for special division names like "Spec 2-day" from cups
+    if (!Object.hasOwn(RGLDivisions, divisionName)) continue; // To account for special division names like "Spec 2-day" from cups
+
     return RGLDivisions[pastTeams[i].divisionName];
   }
   return RGLDivisions.None;
-}
+};
 
 // gamemode = "Sixes" or "Highlander"
 // getHighestPlayed
@@ -114,7 +130,7 @@ const getHighestGamemodeTeam = async (gameMode, steamID) => {
     highestDivisionString,
     latestDivisionString,
   };
-}
+};
 
 const updateETF2LOnPage = async () => {
   for (let i = 0; i < playerRows.length; i++) {
@@ -142,7 +158,7 @@ const updateETF2LOnPage = async () => {
     etf2lLink.style.padding = "6px";
     leagueElement.appendChild(etf2lLink);
   }
-}
+};
 
 const updateETF2LNameOnPage = async (steamID, playerInfo, leagueElement) => {
   // Get rid of 'Loading...' message
@@ -157,7 +173,7 @@ const updateETF2LNameOnPage = async (steamID, playerInfo, leagueElement) => {
   etf2lLink.style.backgroundColor = "rgb(144, 238, 144)";
   etf2lLink.style.padding = "6px";
   leagueElement.appendChild(etf2lLink);
-}
+};
 
 const updateRGLName = async (steamID, playerInfo, leagueElement) => {
   if (!playerInfo.rgl.name) return;
@@ -182,7 +198,7 @@ const updateRGLName = async (steamID, playerInfo, leagueElement) => {
   rglLink.style.backgroundColor = "rgb(255, 31, 31)";
 
   rglLink.appendChild(banWarningSpan);
-}
+};
 
 const updateRGLDivisionOnPage = async (playerInfo, leagueElement) => {
   if (!playerInfo.rgl.name) return;
@@ -207,16 +223,21 @@ const updateRGLDivisionOnPage = async (playerInfo, leagueElement) => {
   rglDivisionElement.style.marginLeft = "10px";
 
   leagueElement.appendChild(rglDivisionElement);
-}
+};
 
 const fetchPlayerInfo = async (steamID) => {
   const RGL_profile_data = await getRGLProfile(steamID);
   const ETF2LProfile = await getETF2LProfile(steamID);
 
   const { highestDivisionString, latestDivisionString } = await getHighestGamemodeTeam("Sixes", steamID);
+  if (!highestDivisionString) {
+
+  }
   const localPlayerInfo = window.localStorage.getItem(steamID) ?? null;
 
   const localPlayerInfoJson = JSON.parse(localPlayerInfo);
+  const cachedDivision = localPlayerInfoJson?.rgl?.division;
+  const cachedLatestDivision = localPlayerInfoJson?.rgl?.latestDivision;
 
   const playerInfoToInsert = {
     rgl: {
@@ -224,21 +245,19 @@ const fetchPlayerInfo = async (steamID) => {
       isBanned: RGL_profile_data
         ? RGL_profile_data.status.isBanned
         : localPlayerInfoJson
-        ? localPlayerInfoJson.rgl.isBanned
-        : false,
+          ? localPlayerInfoJson.rgl.isBanned
+          : false,
       division: highestDivisionString
-        ? highestDivisionString
-        : localPlayerInfoJson
-        ? localPlayerInfoJson.rgl.division
-        : "None",
-      latestDivision: latestDivisionString,
+        ? getStableDivision(highestDivisionString, cachedDivision)
+        : getStableDivision(undefined, cachedDivision),
+      latestDivision: getStableDivision(latestDivisionString, cachedLatestDivision),
     },
     etf2l: {
       name: ETF2LProfile ? ETF2LProfile.player.name : localPlayerInfoJson ? localPlayerInfoJson.etf2l.name : null,
     },
   };
   return playerInfoToInsert;
-}
+};
 
 const updatePlayerRows = async () => {
   const listOfSteamIDsInStorageThatMightNeedUpdating = [];
@@ -268,14 +287,14 @@ const updatePlayerRows = async () => {
     showETF2L && updateETF2LNameOnPage(steamID, playerInfo, leagueElement);
     showRGL && updateRGLName(steamID, playerInfo, leagueElement);
     showRGL && updateRGLDivisionOnPage(playerInfo, leagueElement);
-  };
+  }
   // Profiles have local versions that might need updating
   for (let i = 0; i < listOfSteamIDsInStorageThatMightNeedUpdating.length; i++) {
     const steamID = listOfSteamIDsInStorageThatMightNeedUpdating[i];
     const playerInfoToInsert = await fetchPlayerInfo(steamID);
     window.localStorage.setItem(steamID, JSON.stringify(playerInfoToInsert));
-  };
-}
+  }
+};
 
 const tableBody = document.getElementById("players");
 

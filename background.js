@@ -1,3 +1,5 @@
+const MS_TO_WAIT_BETWEEN_RGL_REQUESTS = 2000;
+const MS_TO_WAIT_BETWEEN_ETF2L_REQUESTS = 1000;
 const isFirefox = typeof browser !== "undefined";
 const currentBrowser = isFirefox ? browser : chrome;
 const timer = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -13,22 +15,22 @@ const checkForErrors = (response) => {
   }
 
   return false;
-}
+};
 
 const getRGLPastTeams = async (steamID) => {
   const uri = `https://api.rgl.gg/v0/profile/${steamID}/teams`;
 
-  await timer(1500);
+  await timer(MS_TO_WAIT_BETWEEN_RGL_REQUESTS);
   const response = await fetch(uri);
   if (checkForErrors(response)) return;
 
   return await response.json();
-}
+};
 
 const getRGLProfile = async (steamID) => {
   const uri = `https://api.rgl.gg/v0/profile/${steamID}`;
 
-  await timer(1500);
+  await timer(MS_TO_WAIT_BETWEEN_RGL_REQUESTS);
   const response = await fetch(uri);
   if (checkForErrors(response)) return;
 
@@ -38,7 +40,7 @@ const getRGLProfile = async (steamID) => {
 const GetETF2LProfile = async (steamID) => {
   const uriETF2L = `https://api-v2.etf2l.org/player/${steamID}`;
 
-  await timer(500);
+  await timer(MS_TO_WAIT_BETWEEN_ETF2L_REQUESTS);
   const response = await fetch(uriETF2L);
   if (checkForErrors(response)) return;
 
