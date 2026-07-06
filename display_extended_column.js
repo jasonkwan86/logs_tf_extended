@@ -105,7 +105,7 @@ const updateETF2LOnPage = async () => {
     const leagueElement = playerRows[i].firstChild;
 
     // Get rid of 'Loading...' message
-    leagueElement.innerHTML = "";
+    leagueElement.textContent = "";
 
     if (resETF2L.status != 200) {
       console.log(resETF2L);
@@ -116,7 +116,7 @@ const updateETF2LOnPage = async () => {
     const data = await resETF2L;
     const etf2lLink = document.createElement("a");
     etf2lLink.classList.add("logs-tf-ext-etf2l-link");
-    etf2lLink.innerHTML = data.player.name;
+    etf2lLink.textContent = data.player.name;
     etf2lLink.href = `https://etf2l.org/search/${steamID}/`;
     etf2lLink.target = "_blank";
     leagueElement.appendChild(etf2lLink);
@@ -125,13 +125,13 @@ const updateETF2LOnPage = async () => {
 
 const updateETF2LNameOnPage = async (steamID, playerInfo, leagueElement) => {
   // Get rid of 'Loading...' message
-  leagueElement.innerHTML = "";
+  leagueElement.textContent = "";
 
   if (!playerInfo.etf2l.name) return;
 
   const etf2lLink = document.createElement("a");
   etf2lLink.classList.add("logs-tf-ext-etf2l-link");
-  etf2lLink.innerHTML = playerInfo.etf2l.name;
+  etf2lLink.textContent = playerInfo.etf2l.name;
   etf2lLink.href = `https://etf2l.org/search/${steamID}/`;
   etf2lLink.target = "_blank";
   leagueElement.appendChild(etf2lLink);
@@ -147,7 +147,7 @@ const updateRGLName = async (steamID, playerInfo, leagueElement) => {
 
   const banWarning = playerInfo.rgl.isBanned;
 
-  rglLink.innerHTML = playerInfo.rgl.name;
+  rglLink.textContent = playerInfo.rgl.name;
 
   leagueElement.appendChild(rglLink);
 
@@ -155,7 +155,7 @@ const updateRGLName = async (steamID, playerInfo, leagueElement) => {
 
   const banWarningSpan = document.createElement("span");
   banWarningSpan.classList.add("logs-tf-ext-ban-warning");
-  banWarningSpan.innerHTML = " (BANNED)";
+  banWarningSpan.textContent = " (BANNED)";
   rglLink.classList.add("logs-tf-ext-rgl-link--banned");
 
   rglLink.appendChild(banWarningSpan);
@@ -254,7 +254,7 @@ const playerTableHead = tableBody.children[0].firstElementChild;
 const playerTableBody = tableBody.children[1];
 
 const rglNameHeader = document.createElement("th");
-rglNameHeader.innerHTML = "ETF2L/RGL + 6s Division";
+rglNameHeader.textContent = "ETF2L/RGL + 6s Division";
 
 playerTableHead.insertBefore(rglNameHeader, playerTableHead.firstChild);
 
@@ -262,8 +262,8 @@ const playerRows = playerTableBody.children;
 
 for (let i = 0; i < playerRows.length; i++) {
   const leagueData = document.createElement("td");
-  // rglName.innerHTML = "Loading...";
-  leagueData.innerHTML = "";
+  // rglName.textContent = "Loading...";
+  leagueData.textContent = "";
   playerRows[i].insertBefore(leagueData, playerRows[i].firstChild);
 }
 
