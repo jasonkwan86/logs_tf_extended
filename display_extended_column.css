@@ -1,0 +1,90 @@
+.logs-tf-ext-main-container {
+  width: 1400px !important;
+}
+
+.logs-tf-ext-etf2l-link {
+  background-color: rgb(144, 238, 144);
+  padding: 6px;
+}
+
+.logs-tf-ext-rgl-link {
+  background-color: rgb(255, 203, 108);
+  padding: 6px;
+  margin-left: 10px;
+}
+
+.logs-tf-ext-rgl-link--banned {
+  background-color: rgb(255, 31, 31);
+}
+
+.logs-tf-ext-rgl-division {
+  font-weight: bold;
+  min-width: 40px;
+  display: inline-block;
+  text-align: center;
+  padding: 6px;
+  margin-left: 10px;
+}
+
+.logs-tf-ext-rgl-division--none {
+  background-color: gray;
+  color: black;
+}
+
+.logs-tf-ext-rgl-division--none::before {
+  content: "NEW";
+}
+
+.logs-tf-ext-rgl-division--newcomer {
+  background-color: #c54c36;
+  color: white;
+}
+
+.logs-tf-ext-rgl-division--newcomer::before {
+  content: "NC";
+}
+
+.logs-tf-ext-rgl-division--amateur {
+  background-color: #d0cd36;
+  color: black;
+}
+
+.logs-tf-ext-rgl-division--amateur::before {
+  content: "AM";
+}
+
+.logs-tf-ext-rgl-division--intermediate {
+  background-color: #4ee16b;
+  color: black;
+}
+
+.logs-tf-ext-rgl-division--intermediate::before {
+  content: "IM";
+}
+
+.logs-tf-ext-rgl-division--main {
+  background-color: #55d1ce;
+  color: black;
+}
+
+.logs-tf-ext-rgl-division--main::before {
+  content: "MAIN";
+}
+
+.logs-tf-ext-rgl-division--advanced {
+  background-color: #5f6bf6;
+  color: white;
+}
+
+.logs-tf-ext-rgl-division--advanced::before {
+  content: "ADV";
+}
+
+.logs-tf-ext-rgl-division--invite {
+  background-color: #e049b2;
+  color: white;
+}
+
+.logs-tf-ext-rgl-division--invite::before {
+  content: "INV";
+}

@@ -15,6 +15,7 @@
   "content_scripts": [
     {
       "matches": ["*://*.logs.tf/*"],
+      "css": ["display_extended_column.css"],
       "js": ["display_extended_column.js"]
     }
   ],

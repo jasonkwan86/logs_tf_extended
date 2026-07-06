@@ -34,45 +34,8 @@ const RGLDivisionsInverse = Object.freeze({
   6: "Invite",
 });
 
-const RGLDivisionSpecs = Object.freeze({
-  None: {
-    backgroundColor: "gray",
-    textColor: "black",
-    shortenedName: "NEW",
-  },
-  Newcomer: {
-    backgroundColor: "#c54c36",
-    textColor: "white",
-    shortenedName: "NC",
-  },
-  Amateur: {
-    backgroundColor: "#d0cd36",
-    textColor: "black",
-    shortenedName: "AM",
-  },
-  Intermediate: {
-    backgroundColor: "#4ee16b",
-    textColor: "black",
-    shortenedName: "IM",
-  },
-  Main: {
-    backgroundColor: "#55d1ce",
-    textColor: "black",
-    shortenedName: "MAIN",
-  },
-  Advanced: {
-    backgroundColor: "#5f6bf6",
-    textColor: "white",
-    shortenedName: "ADV",
-  },
-  Invite: {
-    backgroundColor: "#e049b2",
-    textColor: "white",
-    shortenedName: "INV",
-  },
-});
-
-const isKnownDivision = (division) => typeof division === "string" && RGLDivisionSpecs[division] !== undefined;
+const isKnownDivision = (division) => typeof division === "string" && Object.hasOwn(RGLDivisions, division);
+const getDivisionClassName = (division) => `logs-tf-ext-rgl-division--${division.toLowerCase()}`;
 
 const getStableDivision = (freshDivision, cachedDivision) => {
   const hasFreshDivision = isKnownDivision(freshDivision);
@@ -108,9 +71,10 @@ const getLatestDivisionPlayed = (pastTeams, gameMode) => {
 
   for (let i = 0; i < pastTeams.length; i++) {
     if (pastTeams[i].formatName != gameMode) continue;
+    const divisionName = pastTeams[i].divisionName;
     if (!Object.hasOwn(RGLDivisions, divisionName)) continue; // To account for special division names like "Spec 2-day" from cups
 
-    return RGLDivisions[pastTeams[i].divisionName];
+    return RGLDivisions[divisionName];
   }
   return RGLDivisions.None;
 };
@@ -151,11 +115,10 @@ const updateETF2LOnPage = async () => {
     // const data = await resETF2L.json();
     const data = await resETF2L;
     const etf2lLink = document.createElement("a");
+    etf2lLink.classList.add("logs-tf-ext-etf2l-link");
     etf2lLink.innerHTML = data.player.name;
     etf2lLink.href = `https://etf2l.org/search/${steamID}/`;
     etf2lLink.target = "_blank";
-    etf2lLink.style.backgroundColor = "rgb(144, 238, 144)";
-    etf2lLink.style.padding = "6px";
     leagueElement.appendChild(etf2lLink);
   }
 };
@@ -167,11 +130,10 @@ const updateETF2LNameOnPage = async (steamID, playerInfo, leagueElement) => {
   if (!playerInfo.etf2l.name) return;
 
   const etf2lLink = document.createElement("a");
+  etf2lLink.classList.add("logs-tf-ext-etf2l-link");
   etf2lLink.innerHTML = playerInfo.etf2l.name;
   etf2lLink.href = `https://etf2l.org/search/${steamID}/`;
   etf2lLink.target = "_blank";
-  etf2lLink.style.backgroundColor = "rgb(144, 238, 144)";
-  etf2lLink.style.padding = "6px";
   leagueElement.appendChild(etf2lLink);
 };
 
@@ -179,11 +141,9 @@ const updateRGLName = async (steamID, playerInfo, leagueElement) => {
   if (!playerInfo.rgl.name) return;
 
   const rglLink = document.createElement("a");
+  rglLink.classList.add("logs-tf-ext-rgl-link");
   rglLink.href = `https://rgl.gg/Public/PlayerProfile?p=${steamID}`;
   rglLink.target = "_blank";
-  rglLink.style.backgroundColor = "rgb(255, 203, 108)";
-  rglLink.style.padding = "6px";
-  rglLink.style.marginLeft = "10px";
 
   const banWarning = playerInfo.rgl.isBanned;
 
@@ -194,8 +154,9 @@ const updateRGLName = async (steamID, playerInfo, leagueElement) => {
   if (!banWarning) return;
 
   const banWarningSpan = document.createElement("span");
+  banWarningSpan.classList.add("logs-tf-ext-ban-warning");
   banWarningSpan.innerHTML = " (BANNED)";
-  rglLink.style.backgroundColor = "rgb(255, 31, 31)";
+  rglLink.classList.add("logs-tf-ext-rgl-link--banned");
 
   rglLink.appendChild(banWarningSpan);
 };
@@ -205,22 +166,14 @@ const updateRGLDivisionOnPage = async (playerInfo, leagueElement) => {
   const getHighestDivison = await getHighestDivisionPlayedFlag();
   const division = getHighestDivison ? playerInfo.rgl.division : playerInfo.rgl.latestDivision;
 
-  if (!RGLDivisionSpecs[division]) {
+  if (!isKnownDivision(division)) {
     console.log("Error occurred for " + playerInfo.rgl.name);
     console.log(`The division is not valid. Division: ${division}`);
     return;
   }
 
   const rglDivisionElement = document.createElement("span");
-  rglDivisionElement.style.backgroundColor = RGLDivisionSpecs[division].backgroundColor;
-  rglDivisionElement.style.color = RGLDivisionSpecs[division].textColor;
-  rglDivisionElement.style.fontWeight = "bold";
-  rglDivisionElement.style.minWidth = "40px";
-  rglDivisionElement.style.display = "inline-block";
-  rglDivisionElement.style.textAlign = "center";
-  rglDivisionElement.innerHTML = RGLDivisionSpecs[division].shortenedName;
-  rglDivisionElement.style.padding = "6px";
-  rglDivisionElement.style.marginLeft = "10px";
+  rglDivisionElement.classList.add("logs-tf-ext-rgl-division", getDivisionClassName(division));
 
   leagueElement.appendChild(rglDivisionElement);
 };
@@ -231,7 +184,6 @@ const fetchPlayerInfo = async (steamID) => {
 
   const { highestDivisionString, latestDivisionString } = await getHighestGamemodeTeam("Sixes", steamID);
   if (!highestDivisionString) {
-
   }
   const localPlayerInfo = window.localStorage.getItem(steamID) ?? null;
 
@@ -316,6 +268,6 @@ for (let i = 0; i < playerRows.length; i++) {
 }
 
 const mainElement = document.getElementsByClassName("container main")[0];
-mainElement.style = "width: 1400px !important;";
+mainElement.classList.add("logs-tf-ext-main-container");
 
 updatePlayerRows();
